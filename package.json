@@ -1,0 +1,17 @@
+{
+  "name": "Basic-Token-Contract",
+  "version": "1.0.0",
+  "description": "",
+  "main": "run.js",
+  "directories": {
+    "Basic-Token-Contract": "Basic-Token-Contract"
+  },
+  "dependencies": {
+    "web3": "^1.0.0-beta.26",
+    "solc": "^0.4.19"
+  },
+  "devDependencies": {},
+  "scripts": {},
+  "author": "",
+  "license": "ISC"
+}
