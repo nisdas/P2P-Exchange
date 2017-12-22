@@ -5,6 +5,8 @@ contract ListingContract {
 mapping (bytes32 => Item) public registry;
 mapping(address => uint) public nonce;
 
+event ListItem(bytes32 productHash, address owner, string name, uint price);
+
 struct Item {
     string name;
     uint price;
@@ -29,6 +31,7 @@ struct Item {
         Listed.state = 0;
         assert(keccak256(Listed.name) == keccak256(name) && Listed.price == price && Listed.owner == msg.sender && Listed.AccountNonce == nonce[msg.sender] && Listed.state == 0);
         registry[productHash] = Listed;
+        ListItem(Listed.productHash,Listed.owner,Listed.name,Listed.price);
         return productHash;
     }
 
@@ -51,7 +54,7 @@ mapping (address => uint) public bidderBalance;
 mapping (address => uint) public fallbackBalance;
 mapping(bytes32 => TransactionData) public TransactionRecords;
 mapping(bytes32 => mapping (address => bool)) CompleteSale;
-ListingContract instance ;
+ListingContract public instance ;
 
 struct TransactionData {
          bytes32 productHash;
@@ -73,7 +76,7 @@ struct TransactionData {
     function bid(bytes32 productHash) payable public {
 
        var (price,owner,state) = instance.registryGetter(productHash);
-       require(msg.value >= 0 && msg.value >= price && state == 0);
+      require(msg.value >= 0 && msg.value >= price && state == 0);
        bidderBalance[msg.sender] += msg.value;
        instance.editState(productHash,1);
        TransactionData memory transaction;
