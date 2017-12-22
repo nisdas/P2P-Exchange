@@ -16,7 +16,7 @@ struct Item {
 }
 
 
-function listItem(string name, uint price, uint nonce) public returns(Item storage Listed) {
+function listItem(string name, uint price, uint nonce) internal returns(Item memory Listed) {
         nonce += 1;
         Listed.AccountNonce += nonce;
         Listed.name = name;
@@ -30,7 +30,7 @@ function listItem(string name, uint price, uint nonce) public returns(Item stora
         return Listed;
     }
 
-    function bid(Item storage Listed, uint storage bidderBalance)  public returns(Item) {
+    function bid(Item memory Listed, uint bidderBalance)  internal returns(Item) {
 
        
       // Listed = registry(productHash);
@@ -40,29 +40,74 @@ function listItem(string name, uint price, uint nonce) public returns(Item stora
        Listed.TransacStart = now;
        Listed.buyer = msg.sender;
        return Listed;
-       
-       
-       
+         
 
     }
 
-  /*  function completedSale(bytes32 productHash) public returns(TransactionData receipt) {
-            require(TransactionRecords[productHash].TransacStart > 0 && (msg.sender == TransactionRecords[productHash].buyer || msg.sender == TransactionRecords[productHash].seller ));
-            if (msg.sender == TransactionRecords[productHash].buyer) {
-                CompleteSale[productHash][msg.sender] = true;
+    function completedSale(Item memory Listed, bool buyerRes, bool ownerRes, uint  bidderBalance) internal returns(Item) {
+            require(Listed.TransacStart > 0 && (msg.sender == Listed.buyer || msg.sender == Listed.owner ));
+            if (msg.sender == Listed.buyer) {
+                 buyerRes = true;
             }
-            if (msg.sender == TransactionRecords[productHash].seller) {
-                CompleteSale[productHash][msg.sender] = true;
+            if (msg.sender == Listed.owner) {
+                 ownerRes = true;
             }
-            if (CompleteSale[productHash][TransactionRecords[productHash].buyer] && CompleteSale[productHash][TransactionRecords[productHash].buyer] ) {
-                bidderBalance[TransactionRecords[productHash].buyer] -= TransactionRecords[productHash].price;
-                TransactionRecords[productHash].buyer.transfer(TransactionRecords[productHash].price);
-                instance.editState(productHash,2);
-                TransactionRecords[productHash].TransacEnd = now;
-                return TransactionRecords[productHash];
+            if (buyerRes && ownerRes ) {
+                bidderBalance -= Listed.price;
+                Listed.owner.transfer(Listed.price);
+                Listed.state = "Sale Completed";
+                Listed.TransacEnd = now;
+                return Listed;
 
 
             }
-    } */
+    } 
 
 }
+
+contract Transaction {
+ 
+
+    mapping (address => uint) public bidderBalance;
+    mapping (address => uint) public fallbackBalance;
+    mapping(bytes32 => mapping (address => bool)) CompleteSale;
+    mapping (bytes32 => FunctionSet.Item) public registry;
+    mapping(address => uint) public nonce;
+    event ItemListed(bytes32 productHash, address owner, string name, uint price);
+    event ItemBid(bytes32 productHash, address buyer, uint price, uint TransacStart);
+    event ItemSold(bytes32 productHash, address buyer, uint TransacEnd);
+
+    
+
+    function () public payable {
+        fallbackBalance[msg.sender] += msg.value;
+    }
+
+    function _listItem(string name, uint price) public returns(bytes32) {
+        FunctionSet.Item memory Listed;
+        Listed = FunctionSet.listItem(name,price,nonce[msg.sender]);
+        registry[Listed.productHash] = Listed;
+        ItemListed(Listed.productHash,Listed.owner,Listed.name,Listed.price);
+        return Listed.productHash;   
+    }
+
+    function _bid(bytes32 productHash) payable public {
+        FunctionSet.Item memory Listed;
+        Listed = FunctionSet.bid(registry[productHash], bidderBalance[msg.sender]);
+        ItemBid(Listed.productHash,Listed.buyer,Listed.price,Listed.TransacStart);
+
+
+    }
+
+    function _completedSale(bytes32 productHash) public returns(FunctionSet.Item Listed){
+        Listed = registry[productHash];
+        Listed = FunctionSet.completedSale(Listed,CompleteSale[productHash][Listed.owner],CompleteSale[productHash][Listed.buyer],bidderBalance[Listed.buyer]);
+        if (keccak256(Listed.state) == keccak256("Sale Completed")) {
+            ItemSold(Listed.productHash,Listed.buyer,Listed.TransacEnd);
+        return Listed;
+        }
+    }
+
+
+}
+
