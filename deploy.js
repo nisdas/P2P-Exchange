@@ -1,9 +1,11 @@
+
+
 var config = require('./config.js');
 var web3 = require("web3");
 var fs = require("fs");
 var solc = require("solc");
 
-web3 = new web3(new web3.providers.HttpProvider("http://localhost:8546"));
+web3 = new web3(new web3.providers.HttpProvider("http://localhost:8545"));
 var compiledCode = solc.compile(fs.readFileSync('./library.sol', 'utf8'),1);
 var source = compiledCode.contracts[":FunctionSet"];
 var source2 = compiledCode.contracts[":Transaction"];
@@ -27,35 +29,30 @@ LibraryContract.deploy({
 
            
 
-function ListItem(name,price) {
+function ListItem(name,price,callback) {
     var productHash;
     var owner;
     TransactionContract.methods._listItem(name,price).send({
-        from: config.address, gas:500000}).on('receipt',function(receipt){
-        console.log(receipt);
+        from: config.owner, gas:500000}).on('receipt',function(receipt){
+        console.log("\n-------------Item being Listed---------------\nThe Transaction Hash is : " + receipt.transactionHash +"\nThe Gas Used in this transaction is : "+receipt.gasUsed);
         productHash = receipt.events.ItemListed.returnValues.productHash;
-        owner = receipt.events.ListItem.returnValues.owner;
-        name = receipt.events.ListItem.returnValues.name;
-        price = receipt.events.ListItem.returnValues.price;
-        console.log("The Product Hash is: ${productHash}\nThe Owner is: ${owner}\nName of the Product is :${name}\nThe price of the product is${price} ");
-        return productHash;
-
-    })
+        owner = receipt.events.ItemListed.returnValues.owner;
+        console.log("\nThe Product Hash is:"+productHash+"\nThe Owner is : "+owner+"\nName of the Product is : "+name+" \nThe price of the product is : "+price);
+        callback(productHash);
+        })
+        
 
 }
-function BidItem(productHash){
-    var productHash;
-    var buyer;
+function BidItem(productHash,price,callback){
+    var buyer; 
     var TransacStart;
-    var price;
     TransactionContract.methods._bid(productHash).send({
-        from: config.address, gas:500000, value: 10000}).on('receipt',function(receipt){
-            productHash = receipt.events.ItemBid.returnValues.productHash;
+        from: config.buyer, gas:500000, value: price}).on('receipt',function(receipt){
+            console.log("\n-------------Item being bid------------------\nThe Transaction Hash is : " + receipt.transactionHash +"\nThe Gas Used in this transaction is : "+receipt.gasUsed);
             buyer = receipt.events.ItemBid.returnValues.buyer;
             TransacStart = receipt.events.ItemBid.returnValues.TransacStart;
-            price = receipt.events.ItemBid.returnValues.price;
-            console.log("The Product Hash is: ${productHash}\nThe Bidder is: ${buyer}\nPrice of the Product is :${price}\nThe Time of the bid is${TransacStart} ");
-            return productHash;
+            console.log("\nThe Product Hash is : "+ productHash+"\nThe Bidder is : "+ buyer+"\nPrice of the Product is : "+price+"\nThe Time of the bid is : "+TransacStart);
+            callback(productHash);
     
         })
     
@@ -63,25 +60,41 @@ function BidItem(productHash){
 
 }
 
-function CompleteSale(productHash){
-    var productHash;
+function CompleteSale(productHash,userAddress,callback){
     var buyer;
     var TransacEnd;
-    TransactionContract.methods._bid(productHash).send({
-        from: config.address, gas:500000, value: 10000}).on('receipt',function(receipt){
-            if(receipt.events != null){
-            productHash = receipt.events.ItemSold.returnValues.productHash;
+    var x = 0 ;
+    TransactionContract.methods._completedSale(productHash).send({
+        from: userAddress, gas:500000}).on('receipt',function(receipt){
+            console.log("\n-------------Item Sale being Confirmed-------\n\nSuccesful Sale Has been Logged!\nTransaction Hash is: "+receipt.transactionHash);
+            buyer = receipt.events.ItemSold ; 
+            if (x == 0) {
+            x++;
             buyer = receipt.events.ItemSold.returnValues.buyer;
-            TransacStart = receipt.events.ItemSold.returnValues.TransacStart;
+            TransacEnd = receipt.events.ItemSold.returnValues.TransacEnd;
             price = receipt.events.ItemSold.returnValues.price;
-            console.log("The Product Hash is: ${productHash}\nThe Bidder is: ${buyer}\nPrice of the Product is :${price}\nThe Time of the bid is${TransacStart} ");
-            return productHash;
+            console.log("\nThe Product Hash is : "+productHash+"\n\nThe Bidder is : "+buyer+"\n\nPrice of the Product is : "+price+"\n\nThe End of the Sale is : "+TransacStart);
             }
+            console.log(x);
+            callback(productHash);
         })
     
 
 
 }
+
+function test(){
+    ListItem("test",10000,function callback(productHash){
+        BidItem(productHash,10000,function callback(productHash){
+            CompleteSale(productHash,'0xf17f52151EbEF6C7334FAD080c5704D77216b732',function callback(productHash){
+                CompleteSale(productHash,'0x627306090abaB3A6e1400e9345bC60c78a8BEf57',function callback(productHash){
+                    TransactionContract.methods.registry(productHash).call().then(console.log);
+                });
+            });  
+        });
+    });
+}
+
 
 
 module.exports = {
@@ -92,7 +105,9 @@ module.exports = {
     LibraryContract,
     TransactionContract,
     ListItem,
-    BidItem
+    BidItem,
+    CompleteSale,
+    test
     
 
 }

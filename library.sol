@@ -26,41 +26,33 @@ function listItem(string name, uint price, uint nonce) internal returns(Item mem
         Listed.productHash = productHash;
         Listed.state = "For Sale";
         assert(keccak256(Listed.name) == keccak256(name) && Listed.price == price && Listed.owner == msg.sender && Listed.AccountNonce == nonce && keccak256(Listed.state) == keccak256("For Sale"));
-        //ListItem(Listed.productHash,Listed.owner,Listed.name,Listed.price);
+    
         return Listed;
     }
 
-    function bid(Item memory Listed, uint bidderBalance)  internal returns(Item) {
+    function bid(Item memory Listed, uint bidderBalance)  internal returns(Item,uint) {
 
-       
-      // Listed = registry(productHash);
-       require(msg.value >= 0 && msg.value >= Listed.price && keccak256(Listed.state) == keccak256("For Sale"));
+       require(msg.value >= 0 && msg.value >= Listed.price && keccak256(Listed.state) == keccak256("For Sale") && msg.sender != Listed.owner);
        bidderBalance += msg.value;
        Listed.state = "Bid Offered";
        Listed.TransacStart = now;
        Listed.buyer = msg.sender;
-       return Listed;
+       return (Listed, bidderBalance);
          
 
     }
 
-    function completedSale(Item memory Listed, bool buyerRes, bool ownerRes, uint  bidderBalance) internal returns(Item) {
+    function completedSale(Item memory Listed, bool buyerRes, bool ownerRes, uint  bidderBalance) internal returns(Item,uint) {
             require(Listed.TransacStart > 0 && (msg.sender == Listed.buyer || msg.sender == Listed.owner ));
-            if (msg.sender == Listed.buyer) {
-                 buyerRes = true;
-            }
-            if (msg.sender == Listed.owner) {
-                 ownerRes = true;
-            }
-            if (buyerRes && ownerRes ) {
+         
+            if (buyerRes == true && ownerRes == true ) {
                 bidderBalance -= Listed.price;
                 Listed.owner.transfer(Listed.price);
                 Listed.state = "Sale Completed";
                 Listed.TransacEnd = now;
-                return Listed;
-
-
             }
+
+            return (Listed, bidderBalance);
     } 
 
 }
@@ -70,7 +62,7 @@ contract Transaction {
 
     mapping (address => uint) public bidderBalance;
     mapping (address => uint) public fallbackBalance;
-    mapping(bytes32 => mapping (address => bool)) CompleteSale;
+    mapping(bytes32 => mapping (address => bool)) public CompleteSale;
     mapping (bytes32 => FunctionSet.Item) public registry;
     mapping(address => uint) public nonce;
     event ItemListed(bytes32 productHash, address owner, string name, uint price);
@@ -92,8 +84,9 @@ contract Transaction {
     }
 
     function _bid(bytes32 productHash) payable public {
-        FunctionSet.Item memory Listed;
-        Listed = FunctionSet.bid(registry[productHash], bidderBalance[msg.sender]);
+        var ( Listed, balance)  = FunctionSet.bid(registry[productHash], bidderBalance[msg.sender]);
+        registry[productHash] = Listed;
+        bidderBalance[msg.sender] = balance;
         ItemBid(Listed.productHash,Listed.buyer,Listed.price,Listed.TransacStart);
 
 
@@ -101,13 +94,26 @@ contract Transaction {
 
     function _completedSale(bytes32 productHash) public returns(FunctionSet.Item Listed){
         Listed = registry[productHash];
-        Listed = FunctionSet.completedSale(Listed,CompleteSale[productHash][Listed.owner],CompleteSale[productHash][Listed.buyer],bidderBalance[Listed.buyer]);
-        if (keccak256(Listed.state) == keccak256("Sale Completed")) {
-            ItemSold(Listed.productHash,Listed.buyer,Listed.TransacEnd);
-        return Listed;
+
+        if (msg.sender == Listed.owner) {
+            CompleteSale[productHash][Listed.owner] = true;
+
+        }
+        if (msg.sender == Listed.buyer) {
+            CompleteSale[productHash][Listed.buyer] = true;
+
+        }
+
+        var (Item ,balance) = FunctionSet.completedSale(Listed,CompleteSale[productHash][Listed.owner],CompleteSale[productHash][Listed.buyer],bidderBalance[Listed.buyer]);
+        registry[productHash] = Item;
+        bidderBalance[Item.buyer] = balance;
+        if (keccak256(Item.state) == keccak256("Sale Completed")) {
+            ItemSold(Item.productHash,Item.buyer,Item.TransacEnd);
+        return Item;
         }
     }
 
 
 }
+
 
