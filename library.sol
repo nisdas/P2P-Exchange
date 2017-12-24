@@ -1,21 +1,35 @@
 pragma solidity ^0.4.19;
 
+//Library containing all the relevant functions
 library FunctionSet {
 
+/* The item struct consists of the different properties of the Item that is to be listed.
 
+The AccountNonce is added to the item struct so as to allow any user to list items with the same name and price on the platform,
+without resulting in those item's productHash being the same.
+
+The productHash is the unique identifier for that item, and is pretty much the key property for that struct. It is the basis of identification 
+for that item throughout the whole platform.
+
+
+*/
 struct Item {
     string name;
     uint price;
     address owner;
-    uint AccountNonce;
-    bytes32 productHash;
+    uint AccountNonce;   
+    bytes32 productHash;   
     string state;
     address buyer;
     uint TransacStart;
     uint TransacEnd;
 }
 
-
+/*
+This function Lists the item on the blockchain, the name and price is inputted by the user which is used to
+generate the resultant productHash. All the other relevant properties are written into the struct instance, so that
+they can be pushed onto and be permanently stored on the blockchain. 
+*/
 function listItem(string name, uint price, uint nonce) internal returns(Item memory Listed) {
         nonce += 1;
         Listed.AccountNonce += nonce;
@@ -30,6 +44,11 @@ function listItem(string name, uint price, uint nonce) internal returns(Item mem
         return Listed;
     }
 
+/*
+This function allows another user to bid an item of their choice and deposit the value of that item to the contract. A bidder balance mapping is used to keep track 
+of how much a bidder has transferred into the contract. The item's status is then updated on the blockchain.
+*/
+
     function bid(Item memory Listed, uint bidderBalance)  internal returns(Item,uint) {
 
        require(msg.value >= 0 && msg.value >= Listed.price && keccak256(Listed.state) == keccak256("For Sale") && msg.sender != Listed.owner);
@@ -41,6 +60,11 @@ function listItem(string name, uint price, uint nonce) internal returns(Item mem
          
 
     }
+/*
+This function is called by the buyer of the item to signal that he has received the item , and the seller of the item that he/she has delivered the item
+to the buyer. Once both of them call this function, this transaction is marked as complete and the item is regarded as sold. The seller of the item 
+then has the resulting amount transferred to him.
+*/
 
     function completedSale(Item memory Listed, bool buyerRes, bool ownerRes, uint  bidderBalance) internal returns(Item,uint) {
             require(Listed.TransacStart > 0 && (msg.sender == Listed.buyer || msg.sender == Listed.owner ));
@@ -58,7 +82,11 @@ function listItem(string name, uint price, uint nonce) internal returns(Item mem
 }
 
 contract Transaction {
- 
+
+    /*
+    All the mappings store the data regarding the item's being listed, their state, the user's data etc in the `registry`. Events are triggered upon the 
+    succesful use of any function.
+    */
 
     mapping (address => uint) public bidderBalance;
     mapping (address => uint) public fallbackBalance;
@@ -74,6 +102,7 @@ contract Transaction {
     function () public payable {
         fallbackBalance[msg.sender] += msg.value;
     }
+    
 
     function _listItem(string name, uint price) public returns(bytes32) {
         FunctionSet.Item memory Listed;
