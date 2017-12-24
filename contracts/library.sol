@@ -93,6 +93,7 @@ contract Transaction {
     mapping(bytes32 => mapping (address => bool)) public CompleteSale;
     mapping (bytes32 => FunctionSet.Item) public registry;
     mapping(address => uint) public nonce;
+    bytes32[] public itemlist;
     event ItemListed(bytes32 productHash, address owner, string name, uint price);
     event ItemBid(bytes32 productHash, address buyer, uint price, uint TransacStart);
     event ItemSold(bytes32 productHash, address buyer, uint TransacEnd);
@@ -109,6 +110,7 @@ contract Transaction {
         Listed = FunctionSet.listItem(name,price,nonce[msg.sender]);
         registry[Listed.productHash] = Listed;
         ItemListed(Listed.productHash,Listed.owner,Listed.name,Listed.price);
+        itemlist.push(Listed.productHash);
         return Listed.productHash;   
     }
 
@@ -140,6 +142,11 @@ contract Transaction {
             ItemSold(Item.productHash,Item.buyer,Item.TransacEnd);
         return Item;
         }
+    }
+
+    function arraySize() public returns(uint) {
+        return itemlist.length;
+
     }
 
 

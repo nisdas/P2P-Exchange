@@ -6,7 +6,7 @@ var fs = require("fs");
 var solc = require("solc");
 
 web3 = new web3(new web3.providers.HttpProvider("http://localhost:8545"));
-var compiledCode = solc.compile(fs.readFileSync('./library.sol', 'utf8'),1);
+var compiledCode = solc.compile(fs.readFileSync('./contracts/library.sol', 'utf8'),1);
 var source = compiledCode.contracts[":FunctionSet"];
 var source2 = compiledCode.contracts[":Transaction"];
 var LibraryContract = new  web3.eth.Contract(JSON.parse(source.interface));
