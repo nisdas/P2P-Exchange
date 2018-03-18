@@ -7,7 +7,17 @@ contract AssetExchange is assetInterface {
 
     using SafeMath for uint ;
 
-    modifier isforSale {
+    modifier isforSale(bytes32 productHash) {
+        Item memory listed;
+        listed = getItem(productHash);
+        require(listed.itemState == state.for_sale );
+        _;
+    }
+
+    modifier isValidBuyer(bytes32 productHash) {
+        Item memory listed;
+        listed = getItem(productHash);
+        require(listed.price <= msg.value );
         _;
     }
 
@@ -22,6 +32,12 @@ contract AssetExchange is assetInterface {
 
     function getProductHash(uint nonce) internal returns (bytes32) {
         return accountMap[msg.sender].itemMap[nonce] ;
+    }
+
+    function addBid(bytes32 productHash) internal {
+        Item memory listed;
+        listed = getItem(productHash);
+
     }
 
     function createItem(string name, uint price,  uint nonce) internal {
@@ -40,6 +56,10 @@ contract AssetExchange is assetInterface {
         createItem(name,price,nonce); 
         accountMap[msg.sender].AccountNonce = nonce.add(1);
         return true;
+
+    }
+
+    function bidItem(bytes32 productHash) isforSale(productHash) isValidBuyer(productHash) returns(bool result) {
 
 
     }
