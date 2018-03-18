@@ -16,16 +16,30 @@ contract AssetExchange is assetInterface {
         return nonce;
     }
 
-    function getItem(bytes32 productHash) internal returns (Item listed) {
+    function getItem(bytes32 productHash) internal returns (Item) {
         return registry[productHash] ;
     }
+
+    function getProductHash(uint nonce) internal returns (bytes32) {
+        return accountMap[msg.sender].itemMap[nonce] ;
+    }
+
+    function createItem(string name, uint price,  uint nonce) internal {
+        Item memory itemlisting; 
+         bytes32 productHash = keccak256(name , price, nonce , msg.sender) ;
+        itemlisting.price = price ;
+        itemlisting.name = name ; 
+        itemlisting.itemState = state.for_sale ;
+        registry[productHash] = itemlisting;
+
+
+    }
     
-    function ListItem(string Name, uint Price) returns(bool listed) {
-        Item memory itemlisting;
+    function listItem(string name, uint price) returns(bool listed) {
         uint nonce = getAccountNonce() ;
-        bytes32 productHash ;
-        itemlisting.name = Name;
-        itemlisting.price = 
+        createItem(name,price,nonce); 
+        accountMap[msg.sender].AccountNonce = nonce.add(1);
+        return true;
 
 
     }
