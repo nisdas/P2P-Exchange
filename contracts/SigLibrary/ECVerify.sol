@@ -20,7 +20,7 @@
 //
 pragma solidity ^0.4.18;
 
-contract ECVerify {
+library ECVerify {
     // Duplicate Solidity's ecrecover, but catching the CALL return value
     function safer_ecrecover(bytes32 hash, uint8 v, bytes32 r, bytes32 s) internal returns (bool, address) {
         // We do our own memory management here. Solidity uses memory offset
