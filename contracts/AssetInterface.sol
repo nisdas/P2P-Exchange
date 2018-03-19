@@ -11,9 +11,10 @@ contract assetInterface {
     string name;
     uint price;
     address bidder;
+    address owner;
     state itemState;
-    uint TransacStart;
-    uint TransacEnd;
+    uint transacStart;
+    uint transacEnd;
 }
     struct Account {
 
