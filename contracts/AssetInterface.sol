@@ -32,10 +32,26 @@ contract assetInterface {
     event ItemBid(bytes32 productHash, address buyer, uint price, uint TransacStart);
     event ItemSold(bytes32 productHash, address buyer, uint TransacEnd);
 
-function ListItem(string name, uint price) returns (bool listed);
+    function getAccountNonce() internal returns (uint nonce) ;
 
-function bid(Item memory Listed, uint bidderBalance)  internal returns(Item,uint);
+    function getItem(bytes32 productHash) internal returns (Item) ;
 
-function completedSale(Item memory Listed, string buyerSign, bool ownerRes, uint  bidderBalance) internal returns(Item,uint);
+    function getProductHash(uint nonce) internal returns (bytes32) ;
+
+    function getBidder(bytes32 productHash) internal returns (address) ;
+
+    function addBid(bytes32 productHash) internal ;
+
+    function confirmSig(bytes32 messageHash, bytes signature) internal returns(address) ;
+
+    function createItem(string name, uint price,  uint nonce) internal ;
+
+    function endSale(bytes32 productHash) internal ;
+    
+    function listItem(string name, uint price) returns(bool listed) ;
+
+    function bidItem(bytes32 productHash) payable returns(bool result) ;
+
+    function completeSale(bytes32 productHash, bytes32 messageHash , bytes signature);
     
 }

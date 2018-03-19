@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 import "./math/SafeMath.sol";
 import "./AssetInterface.sol";
-import "./ECVerify.sol";
+import "./SigLibrary/ECVerify.sol";
 
 contract AssetExchange is assetInterface {
 
