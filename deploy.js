@@ -58,7 +58,9 @@ function deployECVerify() {
 }
 
 function deployAssetContract() {
-    source3.bytecode = solc.linkBytecode(source3.bytecode, { 'SafeMath': SafeMathLibrary.options.address },{ 'ECVerify': ECVerifyLibrary.options.address });
+    source3.bytecode = solc.linkBytecode(source3.bytecode, { 'SafeMath': SafeMathLibrary.options.address } );
+    source3.bytecode = solc.linkBytecode(source3.bytecode, { 'ECVerify': ECVerifyLibrary.options.address } );
+    
 
 
                     AssetExchange.deploy({
